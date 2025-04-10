@@ -1,0 +1,106 @@
+version: '3.9'
+
+services:
+  coding-challenge-phpmyadmin-service:
+    container_name: coding_challenge_phpmyadmin_container
+    image: phpmyadmin:latest
+    depends_on:
+      - coding-challenge-mysql-service
+    ports:
+      - '8080:80'
+    environment:
+      PMA_HOST: coding-challenge-mysql-service
+      MYSQL_ROOT_PASSWORD: 'wanted12345'
+    networks:
+      - coding-challenge-network
+  coding-challenge-mysql-service:
+    container_name: coding_challenge_mysql_container
+    image: mysql:latest
+    restart: always
+    ports:
+      - '3306:3306'
+    volumes:
+      - coding-challenge-mysql-volume:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 'wanted12345'
+      MYSQL_DATABASE: 'coding_challenge_db'
+    networks:
+      - coding-challenge-network
+  coding-challenge-redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - coding-challenge-network
+  coding-challenge-next-service:
+    container_name: coding_challenge_next_container
+    tty: true
+    stdin_open: true
+    build:
+      context: .
+      dockerfile: Dockerfile-next
+    restart: always
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - coding-challenge-network
+    depends_on:
+      - coding-challenge-laravel-service
+    environment:
+      NEXT_PUBLIC_REVERB_APP_ID: 921840
+      NEXT_PUBLIC_REVERB_APP_KEY: muwljy5x72jhape5w4av
+      NEXT_REVERB_APP_SECRET: xdozaccvposc7d67bt8i
+      NEXT_PUBLIC_REVERB_HOST: http://localhost:8081
+      NEXT_PUBLIC_REVERB_PORT: 8081
+      NEXT_PUBLIC_REVERB_SCHEME: http
+      NEXT_PUBLIC_API_INTERNAL_HOST: http://localhost:8000
+      API_URL: 'http://coding-challenge-laravel-service:8000'
+      NEXTAUTH_SECRET: 'rgdP1bskNtFq0xHMR6hOC4sNXs2qzA73IieKdoh6R9eHq8k3JXY5JHOD4AVqjeov'
+    command: bash -c "npm run dev"
+  coding-challenge-laravel-service:
+    container_name: coding_challenge_laravel_container
+    tty: true
+    stdin_open: true
+    build:
+      context: .
+      dockerfile: Dockerfile-laravel
+    restart: always
+    depends_on:
+      - coding-challenge-mysql-service
+    ports:
+      - '8000:8000'
+      - '8081:8081'
+    volumes:
+      - ./backend:/app
+      - /app/vendor
+      - /app/node_modules
+
+    environment:
+      REVERB_APP_ID: 921840
+      REVERB_APP_KEY: muwljy5x72jhape5w4av
+      REVERB_APP_SECRET: xdozaccvposc7d67bt8i
+      REVERB_HOST: coding-challenge-laravel-service
+      REVERB_PORT: 8081
+      REVERB_SCHEME: http
+      VITE_REVERB_APP_KEY: muwljy5x72jhape5w4av
+      VITE_REVERB_HOST: coding-challenge-laravel-service
+      VITE_REVERB_PORT: 8081
+      VITE_REVERB_SCHEME: http
+      DB_HOST: 'coding-challenge-mysql-service'
+      DB_PORT: '3306'
+      DB_DATABASE: 'coding_challenge_db'
+      DB_PASSWORD: 'wanted12345'
+    networks:
+      - coding-challenge-network
+    command: bash -c "php artisan serve --host=0.0.0.0 --port=8000"
+
+volumes:
+  coding-challenge-mysql-volume:
+networks:
+  coding-challenge-network:
+    driver: bridge
+
+    
