@@ -1,0 +1,27 @@
+FROM node:18
+
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY ./frontend/package.json .
+COPY ./frontend/package-lock.json* .
+
+RUN npm install
+
+# Copy rest of the code
+COPY . .
+
+#RUN chmod -R 777 .next
+
+
+#RUN useradd -m kenneth
+#USER kenneth
+
+
+# Expose port
+#EXPOSE 3000
+
+# Start Next.js dev server
+#CMD ["npm", "run", "dev"]

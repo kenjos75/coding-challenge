@@ -1,0 +1,55 @@
+#use php 8.3
+FROM php:8.3.16-fpm
+
+#set current work directory to app
+WORKDIR /app
+
+
+
+#update package and install necessary dependencies
+RUN apt-get update && apt-get install -y \
+    unzip \
+    curl \
+    libz-dev \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && rm -rf /var/lib/apt/lists/*
+
+
+RUN curl -sS https://getcomposer.org/installer | php \
+&& mv composer.phar /usr/local/bin/composer
+
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+&& apt-get install -y nodejs \
+&& apt-get clean
+
+RUN docker-php-ext-install mysqli pdo_mysql
+
+
+RUN docker-php-ext-install pcntl
+RUN docker-php-ext-configure pcntl --enable-pcntl
+
+
+
+#copy vendor 
+COPY ./backend/composer.json .
+COPY ./backend/composer-lock.json* .
+
+
+#copy node modules dependencies
+COPY ./backend/package.json .
+COPY ./backend/package-lock.json* .
+
+
+COPY ./backend/ .
+
+#install composer vendor
+RUN composer install
+
+
+#install npm packages
+RUN npm install
+
+#add default user
+#RUN useradd -m kenneth
+#USER kenneth
